@@ -1,10 +1,5 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-  // Ensure build output is compatible with Vercel
-  typescript: {
-    ignoreBuildErrors: false,
-  },
-};
+const nextConfig: NextConfig = {};
 
 export default nextConfig;
