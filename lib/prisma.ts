@@ -1,15 +1,9 @@
-import { PrismaClient } from "@/src/generated/client";
+import { PrismaClient } from '@prisma/client';
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
-};
+const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
-// Use PostgreSQL for production (Vercel), SQLite for local dev
-// Make sure DATABASE_URL is set in Vercel environment variables
-const prisma = globalForPrisma.prisma ?? new PrismaClient({} as any);
+const prisma = globalForPrisma.prisma || new PrismaClient();
 
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
-}
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 export default prisma;
