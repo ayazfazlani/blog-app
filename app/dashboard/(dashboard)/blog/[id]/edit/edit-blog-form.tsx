@@ -1,0 +1,306 @@
+// app/dashboard/blog/[id]/edit/edit-blog-form.tsx (Client Component)
+"use client";
+
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
+import { useTransition } from "react";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
+
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+import { updatePost, getPostById } from "@/app/actions/create-post";
+import { postSchema, type PostFormValues } from "@/lib/validation";
+import { getUsers } from "@/app/actions/users/get-users";
+import { getCategories } from "@/app/actions/dashboard/category/category-actions";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { useState, useEffect } from "react";
+
+type Post = Awaited<ReturnType<typeof getPostById>>;
+type Users = Awaited<ReturnType<typeof getUsers>>;
+type Categories = Awaited<ReturnType<typeof getCategories>>;
+
+type Props = {
+  post: Post;
+  users: Users;
+  categories: Categories;
+};
+
+export default function EditBlogForm({ post, users, categories }: Props) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
+  // Manage editor content separately from form
+  const [editorContent, setEditorContent] = useState<string>(post.content || "");
+
+  const form = useForm<PostFormValues>({
+    resolver: zodResolver(postSchema),
+    defaultValues: {
+      title: post.title || "",
+      content: "",
+      slug: post.slug || "",
+      excerpt: post.excerpt || "",
+      authorId: post.authorId || "",
+      categoryId: post.categoryId || "",
+      published: post.published || false,
+    },
+  });
+
+  // Update editor content when post content changes
+  useEffect(() => {
+    if (post.content) {
+      setEditorContent(post.content);
+    }
+  }, [post.content]);
+
+  function onSubmit(values: PostFormValues) {
+    startTransition(async () => {
+      try {
+        // Validate editor content
+        if (!editorContent || editorContent.trim() === "") {
+          toast.error("Content is required");
+          return;
+        }
+
+        // Include the editor content in the form values
+        const postData = {
+          ...values,
+          content: editorContent,
+        };
+        await updatePost(post.id, postData);
+        toast.success("Blog post updated successfully!");
+        router.push("/dashboard/blog");
+        router.refresh();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Something went wrong");
+      }
+    });
+  }
+
+  return (
+    <Card>
+      <CardContent className="p-6">
+        <div className="mb-6">
+          <Button variant="ghost" asChild className="mb-4">
+            <Link href="/dashboard/blog">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Blogs
+            </Link>
+          </Button>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Edit Post</h1>
+              <p className="text-muted-foreground">Update your blog post</p>
+            </div>
+          </div>
+        </div>
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <Card>
+              <CardHeader>
+                <CardTitle>Basic Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Title + Auto Slug */}
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Title *</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Enter blog title"
+                          {...field}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            const slug = e.target.value
+                              .toLowerCase()
+                              .replace(/[^a-z0-9]+/g, "-")
+                              .replace(/(^-|-$)/g, "");
+                            form.setValue("slug", slug);
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="slug"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Slug *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="auto-generated-slug" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Excerpt */}
+                <FormField
+                  control={form.control}
+                  name="excerpt"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Excerpt</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter excerpt" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Category Select */}
+                <FormField
+                  control={form.control}
+                  name="categoryId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Category *</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a category" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {categories.length === 0 ? (
+                            <SelectItem value="disabled" disabled>
+                              No categories available
+                            </SelectItem>
+                          ) : (
+                            categories.map((category) => (
+                              <SelectItem key={category.id} value={category.id}>
+                                {category.name}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Content */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    Content *
+                  </label>
+                  <RichTextEditor
+                    value={editorContent}
+                    onChange={setEditorContent}
+                    placeholder="Start writing your blog post..."
+                  />
+                </div>
+
+                {/* Author Select */}
+                <FormField
+                  control={form.control}
+                  name="authorId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Author *</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select an author" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {users.map((user) => (
+                            <SelectItem key={user.id} value={user.id}>
+                              {user.name || user.email}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Publish Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Publish Settings</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <FormField
+                  control={form.control}
+                  name="published"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Publish immediately</FormLabel>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
+
+            <div className="flex justify-end gap-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.push("/dashboard/blog")}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isPending}>
+                {isPending ? "Updating..." : "Update Post"}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
+  );
+}
+
