@@ -5,17 +5,12 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { getPublishedPosts } from "@/app/actions/client/blog-actions";
 import { ReadOnlyEditor } from "@/components/ui/read-only-editor";
-import { Prisma } from "@prisma/client";
 
 // Force dynamic rendering to ensure searchParams are always fresh
 export const dynamic = 'force-dynamic';
 
-type PostWithRelations = Prisma.PostGetPayload<{
-  include: {
-    author: true;
-    category: true;
-  };
-}>;
+// Infer the type from the function return value
+type PostWithRelations = Awaited<ReturnType<typeof getPublishedPosts>>[0];
 
 export default async function BlogPage({
   searchParams,
