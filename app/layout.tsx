@@ -22,15 +22,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
- 
-
     <html lang='en'> 
       <body className="min-h-screen bg-background">
-       
-          <SessionProvider>{children}</SessionProvider>
+        <SessionProvider>{children}</SessionProvider>
         <Toaster />
       </body>
     </html>
-
   );
 }
