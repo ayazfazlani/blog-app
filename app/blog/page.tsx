@@ -1,13 +1,21 @@
 // app/blog/page.tsx
-import prisma from "@/lib/prisma";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar, User, } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { getPublishedPosts } from "@/app/actions/client/blog-actions";
 import { ReadOnlyEditor } from "@/components/ui/read-only-editor";
+import { Prisma } from "@prisma/client";
+
 // Force dynamic rendering to ensure searchParams are always fresh
 export const dynamic = 'force-dynamic';
+
+type PostWithRelations = Prisma.PostGetPayload<{
+  include: {
+    author: true;
+    category: true;
+  };
+}>;
 
 export default async function BlogPage({
   searchParams,
@@ -39,7 +47,7 @@ export default async function BlogPage({
 
       {/* Blog Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {posts.map((post) => (
+        {posts.map((post: PostWithRelations) => (
           <Card
             key={post.id}
             className="overflow-hidden hover:shadow-lg transition-shadow"
