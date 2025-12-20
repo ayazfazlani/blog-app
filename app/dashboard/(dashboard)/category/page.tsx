@@ -5,6 +5,7 @@ import { getCategories } from "@/app/actions/dashboard/category/category-actions
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
+import { Key, ReactElement, JSXElementConstructor, ReactNode, ReactPortal } from "react";
 // import DeleteCategoryButton from "./delete-button";
 
 export default async function CategoriesPage() {
@@ -33,7 +34,7 @@ export default async function CategoriesPage() {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {categories.map((category) => (
+          {categories.map((category: { id: Key | null | undefined; name: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; }) => (
             <Card key={category.id}>
               <CardHeader>
                 <CardTitle className="text-xl">{category.name}</CardTitle>

@@ -27,16 +27,16 @@ export async function getCategoryById(id: string) {
 export async function createCategory(data: unknown) {
   const validated = categorySchema.parse(data); // Secure validation
 
-  const existing = await prisma.category.findUnique({
-    where: { name: validated.name },
-  });
-  if (existing) throw new Error("Category already exists");
-
-  await prisma.category.create({
-    data: { name: validated.name },
-  });
-
-  revalidatePath("/dashboard/category");
+  console.log("Creating category:", validated.name);  
+  try {
+    const result = await prisma.category.create({
+      data: { name: validated.name },
+    });
+    console.log("Category created:", result);
+  } catch (error) {
+    console.error("Error creating category:", error);
+    throw error;
+  }
 }
 
 // UPDATE
