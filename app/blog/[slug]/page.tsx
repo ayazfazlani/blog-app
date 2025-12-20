@@ -5,11 +5,10 @@ import { Calendar, User} from "lucide-react";
 import { format } from "date-fns";
 import Link from "next/link";
 import { ReadOnlyEditor } from "@/components/ui/read-only-editor";
-// type Props = {
-//   params: {
-//     slug: Promise<{ slug: string }>;
-//   };
-// };
+
+// Force dynamic rendering to prevent prerendering during build
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
  const resolvedParams = await params;

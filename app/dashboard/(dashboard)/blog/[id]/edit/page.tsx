@@ -5,6 +5,10 @@ import { getCategories } from "@/app/actions/dashboard/category/category-actions
 import EditBlogForm from "./edit-blog-form";
 import { notFound } from "next/navigation";
 
+// Force dynamic rendering to prevent prerendering during build
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function EditBlogPage({
   params,
 }: {

@@ -8,6 +8,10 @@ import Link from "next/link";
 import { Key, ReactElement, JSXElementConstructor, ReactNode, ReactPortal } from "react";
 // import DeleteCategoryButton from "./delete-button";
 
+// Force dynamic rendering to prevent prerendering during build
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function CategoriesPage() {
   const categories = await getCategories();
 

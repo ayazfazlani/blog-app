@@ -2,6 +2,10 @@
 import { getAllPosts } from "@/app/actions/dashboard/blog/blog-actions";
 import BlogTableClient from "./components/blog-table-client";
 
+// Force dynamic rendering to prevent prerendering during build
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function BlogPage() {
   const posts = await getAllPosts();
 
