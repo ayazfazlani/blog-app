@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { verify } from 'jsonwebtoken';
+import { jwtVerify } from 'jose';
 import type { NextRequest } from 'next/server';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Skip middleware for API routes and static files
@@ -21,7 +21,8 @@ export function middleware(request: NextRequest) {
     const cookieToken = request.cookies.get('auth-token')?.value;
     if (cookieToken && JWT_SECRET) {
       try {
-        verify(cookieToken, JWT_SECRET);
+        const secret = new TextEncoder().encode(JWT_SECRET);
+        await jwtVerify(cookieToken, secret);
         // User is logged in, redirect to dashboard
         return NextResponse.redirect(new URL('/dashboard', request.url));
       } catch {
@@ -58,7 +59,8 @@ export function middleware(request: NextRequest) {
         console.error('⚠️ JWT_SECRET is not set in environment variables');
         return NextResponse.redirect(new URL('/login', request.url));
       }
-      verify(token, JWT_SECRET);
+      const secret = new TextEncoder().encode(JWT_SECRET);
+      await jwtVerify(token, secret);
       return NextResponse.next();
     } catch (error) {
       // Token invalid or expired - clear cookie and redirect
