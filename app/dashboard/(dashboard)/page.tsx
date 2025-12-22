@@ -1,15 +1,12 @@
-// import { auth } from '@/auth'
-import { redirect } from 'next/navigation'
-
+// Dashboard page - authentication is handled by middleware
+// The middleware verifies the JWT token in the cookie before allowing access
 export default async function Dashboard() {
-  // const session = await auth()
-  if (!session?.user) redirect('/login')
-
   return (
-    <div>
-      <h1>Welcome, {session.user.name}!</h1>
-      <p>Email: {session.user.email}</p>
-      <pre>{JSON.stringify(session, null, 2)}</pre>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">Welcome to Dashboard!</h1>
+      <p className="text-muted-foreground">
+        You are successfully authenticated. The middleware has verified your JWT token.
+      </p>
     </div>
   )
 }

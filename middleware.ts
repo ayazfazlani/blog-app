@@ -34,54 +34,39 @@ export function middleware(request: NextRequest) {
   }
 
   // Protect dashboard routes only
-//   if (pathname.startsWith('/dashboard')) {
-//     // First, check for token in cookie (set by login API)
-//     const cookieToken = request.cookies.get('auth-token')?.value;
+  if (pathname.startsWith('/dashboard')) {
+    // First, check for token in cookie (set by login API)
+    const cookieToken = request.cookies.get('auth-token')?.value;
 
-//     // Debug: Log all cookies and cookie presence
-//     console.log('🔍 Middleware check for:', pathname);
-//     console.log('🍪 All cookies:', Array.from(request.cookies.getAll()).map(c => c.name));
-//     console.log('🍪 auth-token cookie present:', !!cookieToken);
-//     if (cookieToken) {
-//       console.log('🍪 Cookie length:', cookieToken.length);
-//       console.log('🍪 Cookie first 20 chars:', cookieToken.substring(0, 20));
-//     } else {
-//       console.log('❌ auth-token cookie NOT found!');
-//     }
+    // If no cookie token, check Authorization header (for API calls)
+    const authHeader = request.headers.get('authorization');
+    const headerToken = authHeader?.startsWith('Bearer ') 
+      ? authHeader.substring(7) 
+      : null;
 
-//     // If no cookie token, check Authorization header (for API calls)
-//     const authHeader = request.headers.get('authorization');
-//     const headerToken = authHeader?.startsWith('Bearer ') 
-//       ? authHeader.substring(7) 
-//       : null;
+    const token = cookieToken || headerToken;
 
-//     const token = cookieToken || headerToken;
+    if (!token) {
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('callbackUrl', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
 
-//     if (!token) {
-//       console.log('🔒 No token found, redirecting to login');
-//       const loginUrl = new URL('/login', request.url);
-//       loginUrl.searchParams.set('callbackUrl', pathname);
-//       return NextResponse.redirect(loginUrl);
-//     }
-
-//     // Verify token
-//     try {
-//       if (!JWT_SECRET) {
-//         console.error('⚠️ JWT_SECRET is not set in environment variables');
-//         return NextResponse.redirect(new URL('/login', request.url));
-//       }
-//       const decoded = verify(token, JWT_SECRET);
-//       console.log('✅ Token verified, allowing access to:', pathname);
-//       console.log('👤 User:', decoded);
-//       return NextResponse.next();
-//     } catch (error) {
-//       // Token invalid or expired - clear cookie and redirect
-//       console.log('❌ Token verification failed:', error);
-//       const response = NextResponse.redirect(new URL('/login', request.url));
-//       response.cookies.delete('auth-token');
-//       return response;
-//     }
-//   }
+    // Verify token
+    try {
+      if (!JWT_SECRET) {
+        console.error('⚠️ JWT_SECRET is not set in environment variables');
+        return NextResponse.redirect(new URL('/login', request.url));
+      }
+      verify(token, JWT_SECRET);
+      return NextResponse.next();
+    } catch (error) {
+      // Token invalid or expired - clear cookie and redirect
+      const response = NextResponse.redirect(new URL('/login', request.url));
+      response.cookies.delete('auth-token');
+      return response;
+    }
+  }
 
   return NextResponse.next();
 }
