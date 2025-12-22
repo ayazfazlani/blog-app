@@ -21,7 +21,7 @@ export async function connectToDatabase() {
   if (!MONGODB_URI) {
     throw new Error('Please define MONGODB_URI in your environment variables');
   }
-
+  let cached = global.mongoose as { conn: typeof mongoose | null; promise: Promise<typeof mongoose> | null };
   // If connection exists and is ready, return it
   if (cached.conn) {
     // Check if connection is still alive
