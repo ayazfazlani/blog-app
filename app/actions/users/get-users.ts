@@ -1,17 +1,20 @@
 // app/actions/get-users.ts
 "use server";
 
-// To this (default import):
-import prisma from "@/lib/prisma";
+import { connectToDatabase } from "@/lib/mongodb";
+import User from "@/models/User";
 
 export async function getUsers() {
-  return await prisma.user.findMany({
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      image: true, // optional avatar
-    },
-    orderBy: { name: "asc" },
-  });
+  await connectToDatabase();
+  const users = await User.find({})
+    .select('name email image')
+    .sort({ name: 1 })
+    .lean();
+  
+  return users.map(user => ({
+    id: user._id.toString(),
+    name: user.name,
+    email: user.email,
+    image: user.image,
+  }));
 }

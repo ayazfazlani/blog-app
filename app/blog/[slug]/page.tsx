@@ -1,7 +1,8 @@
 // app/blog/[slug]/page.tsx
-import prisma from "@/lib/prisma";
+import { connectToDatabase } from "@/lib/mongodb";
+import Post from "@/models/Post";
 import { notFound } from "next/navigation";
-import { Calendar, User} from "lucide-react";
+import { Calendar, User as UserIcon} from "lucide-react";
 import { format } from "date-fns";
 import Link from "next/link";
 import { ReadOnlyEditor } from "@/components/ui/read-only-editor";
@@ -11,25 +12,23 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
- const resolvedParams = await params;
+  await connectToDatabase();
+  const resolvedParams = await params;
   const slug = resolvedParams.slug;
 
   // Fetch the single post by slug
-  const post = await prisma.post.findFirst({
-    where: {
-      slug: slug,
-    },
-    include: {
-      author: {
-        select: { name: true },
-      },
-    },
-  });
+  const post = await Post.findOne({ slug, published: true })
+    .populate('authorId', 'name')
+    .lean();
 
   // If post not found or not published, show 404
-  if (!post || !post.published) {
+  if (!post) {
     notFound();
   }
+
+  const author = post.authorId && typeof post.authorId === 'object' 
+    ? { name: post.authorId.name } 
+    : null;
 
   return (
     <div className="container mx-auto px-4 py-12 max-w-4xl">
@@ -52,8 +51,8 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       {/* Meta Information */}
       <div className="flex flex-wrap items-center gap-4 text-muted-foreground mb-8">
         <div className="flex items-center">
-          <User className="h-4 w-4 mr-2" />
-          {post.author?.name || "Anonymous"}
+          <UserIcon className="h-4 w-4 mr-2" />
+          {author?.name || "Anonymous"}
         </div>
         <div className="flex items-center">
           <Calendar className="h-4 w-4 mr-2" />

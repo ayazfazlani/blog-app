@@ -1,48 +1,49 @@
 // app/actions/blog-actions.ts
 "use server";
 
+import { connectToDatabase } from "@/lib/mongodb";
+import Post from "@/models/Post";
 import { revalidatePath } from "next/cache";
 
-// To this (default import):
-import prisma from "@/lib/prisma";
-
 export async function getAllPosts() {
-  const posts = await prisma.post.findMany({
-    include: {
-      author: {
-        select: {
-          name: true,
-          email: true,
-        },
-      },
-      category: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
-  return posts;
+  await connectToDatabase();
+  const posts = await Post.find({})
+    .populate('authorId', 'name email')
+    .populate('categoryId', 'id name')
+    .sort({ createdAt: -1 })
+    .lean();
+  
+  return posts.map(post => ({
+    id: post._id.toString(),
+    title: post.title,
+    slug: post.slug,
+    content: post.content,
+    published: post.published,
+    categoryId: post.categoryId ? (typeof post.categoryId === 'object' ? post.categoryId._id.toString() : post.categoryId.toString()) : null,
+    category: post.categoryId && typeof post.categoryId === 'object' ? {
+      id: post.categoryId._id.toString(),
+      name: post.categoryId.name,
+    } : null,
+    authorId: post.authorId ? (typeof post.authorId === 'object' ? post.authorId._id.toString() : post.authorId.toString()) : null,
+    author: post.authorId && typeof post.authorId === 'object' ? {
+      id: post.authorId._id.toString(),
+      name: post.authorId.name,
+      email: post.authorId.email,
+    } : null,
+    createdAt: post.createdAt,
+    updatedAt: post.updatedAt,
+  }));
 }
 
 export async function deletePost(id: string) {
-  await prisma.post.delete({
-    where: { id },
-  });
-
+  await connectToDatabase();
+  await Post.findByIdAndDelete(id);
   revalidatePath("/dashboard/blog");
   // No redirect needed here – list stays on same page
 }
 
 export async function togglePublished(id: string, published: boolean) {
-  await prisma.post.update({
-    where: { id },
-    data: { published: !published },
-  });
-
+  await connectToDatabase();
+  await Post.findByIdAndUpdate(id, { published: !published });
   revalidatePath("/dashboard/blog");
 }

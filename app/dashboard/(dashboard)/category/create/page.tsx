@@ -1,86 +1,147 @@
-// app/dashboard/blog/categories/create/page.tsx  (or wherever)
-"use client";
+// app/dashboard/category/create/page.tsx
+'use client';
 
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useTransition } from "react";
-import { useRouter } from "next/navigation";
-
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-import { toast } from "sonner";
-import { createCategory } from "@/app/actions/dashboard/category/category-actions"; // Your server action
-import { categorySchema, type CategoryFormValues } from "@/lib/validation";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function CreateCategoryPage() {
+  const [name, setName] = useState('');
+  // const [slug, setSlug] = useState('');
+  // const [description, setDescription] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
 
-  // 1. Setup RHF with Zod validation
-  const form = useForm<CategoryFormValues>({
-    resolver: zodResolver(categorySchema),
-    defaultValues: {
-      name: "",
-    },
-  });
+  // // Auto-generate slug from name
+  // const generateSlug = (input: string) => {
+  //   return input
+  //     .toLowerCase()
+  //     .trim()
+  //     .replace(/[^a-z0-9\s-]/g, '') // remove special chars
+  //     .replace(/\s+/g, '-') // spaces to dashes
+  //     .replace(/-+/g, '-'); // multiple dashes to single
+  // };
 
-  // 2. Submit handler
-  function onSubmit(values: CategoryFormValues) {
-    startTransition(async () => {
-      try {
-        await createCategory(values); // Server Action runs on server
-        toast.success("Category created!");
-        router.push("/dashboard/category");
-        router.refresh(); // Re-fetch data if needed
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Failed to create");
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setName(value);
+    // setSlug(generateSlug(value));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const res = await fetch('/api/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to create category');
       }
-    });
-  }
+
+      setSuccess('Category created successfully!');
+      setName('');
+      // setSlug('');
+      // setDescription('');
+
+      // Optional: redirect to list page after 1 second
+      setTimeout(() => {
+        router.push('/dashboard/category');
+      }, 1000);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <Card className="max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle>Create New Category</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name *</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., Technology" {...field} />
-                  </FormControl>
-                  <FormMessage /> {/* Auto shows Zod errors */}
-                </FormItem>
-              )}
-            />
+    <div className="min-h-screen bg-gray-50 py-12 px-4">
+      <div className="max-w-2xl mx-auto">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">Create New Category</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <Label htmlFor="name">Category Name *</Label>
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={handleNameChange}
+                  placeholder="e.g., Technology"
+                  required
+                  disabled={loading}
+                />
+              </div>
 
-            <div className="flex justify-end gap-4">
-              <Button type="button" variant="outline" onClick={() => router.back()}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isPending}>
-                {isPending ? "Creating..." : "Create Category"}
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+              {/* <div>
+                <Label htmlFor="slug">Slug (URL-friendly) *</Label>
+                <Input
+                  id="slug"
+                  value={slug}
+                  onChange={(e) => setSlug(generateSlug(e.target.value))}
+                  placeholder="e.g., technology"
+                  required
+                  disabled={loading}
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  Auto-generated from name. Edit if needed.
+                </p>
+              </div> */}
+
+              {/* <div>
+                <Label htmlFor="description">Description (Optional)</Label>
+                <textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Brief description of this category..."
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={loading}
+                />
+              </div> */}
+
+              {error && (
+                <p className="text-red-600 text-sm font-medium">{error}</p>
+              )}
+
+              {success && (
+                <p className="text-green-600 text-sm font-medium">{success}</p>
+              )}
+
+              <div className="flex gap-4">
+                <Button type="submit" disabled={loading} className="flex-1">
+                  {loading ? 'Creating...' : 'Create Category'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.push('/dashboard/category')}
+                  disabled={loading}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 }
