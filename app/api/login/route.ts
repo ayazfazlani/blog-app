@@ -9,9 +9,20 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 export async function POST(request: Request) {
   try {
+    // Check environment variables
     if (!JWT_SECRET) {
+      console.error('❌ JWT_SECRET is not configured');
       return NextResponse.json(
-        { error: 'JWT_SECRET is not configured' },
+        { error: 'Server configuration error: JWT_SECRET is missing' },
+        { status: 500 }
+      );
+    }
+
+    const MONGODB_URI = process.env.MONGODB_URI;
+    if (!MONGODB_URI) {
+      console.error('❌ MONGODB_URI is not configured');
+      return NextResponse.json(
+        { error: 'Server configuration error: MONGODB_URI is missing' },
         { status: 500 }
       );
     }
@@ -25,7 +36,17 @@ export async function POST(request: Request) {
       );
     }
 
-    await connectToDatabase();
+    // Connect to database with error handling
+    try {
+      await connectToDatabase();
+      console.log('✅ Database connected');
+    } catch (dbError: any) {
+      console.error('❌ Database connection error:', dbError);
+      return NextResponse.json(
+        { error: 'Database connection failed. Please try again later.' },
+        { status: 500 }
+      );
+    }
 
     const normalizedEmail = email.toLowerCase().trim();
 
@@ -78,24 +99,34 @@ export async function POST(request: Request) {
     });
 
     // Set token in HTTP-only cookie for middleware access
-    // Important: Use sameSite: 'lax' for development, 'strict' for production
+    // Production settings: secure=true, sameSite='lax' for cross-site compatibility
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
+    
     response.cookies.set('auth-token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: isProduction, // HTTPS only in production
+      sameSite: 'lax', // Allows cookie to be sent on top-level navigations
       maxAge: 60 * 60 * 24 * 7, // 7 days
       path: '/',
-      // Don't set domain for localhost - let browser handle it
+      // Don't set domain - let browser handle it (works for all subdomains)
     });
 
     console.log('✅ Login successful, cookie set for:', normalizedEmail);
     console.log('🍪 Cookie value length:', token.length);
 
     return response;
-  } catch (error) {
-    console.error('Login error:', error);
+  } catch (error: any) {
+    console.error('❌ Login error:', error);
+    console.error('Error message:', error?.message);
+    console.error('Error stack:', error?.stack);
+    
+    // Return more specific error messages
+    const errorMessage = error?.message || 'Something went wrong';
     return NextResponse.json(
-      { error: 'Something went wrong' },
+      { 
+        error: 'Login failed',
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+      },
       { status: 500 }
     );
   }
